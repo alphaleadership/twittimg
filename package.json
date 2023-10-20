@@ -14,6 +14,7 @@
     "enquirer": "^2.3.6",
     "inquirer": "^9.2.0",
     "puppeteer": "^19.11.1",
-    "request": "^2.88.2"
+    "request": "^2.88.2",
+    "twitter-dl": "^1.0.6"
   }
 }

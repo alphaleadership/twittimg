@@ -1,6 +1,7 @@
 const puppeteer = require("puppeteer");
 const fs = require("fs");
-
+const data = [];
+const urls = [];
 const cookiesFilePath = './cookies.json';
 let urlstorage=[]
 // Vérifie si le fichier de cookies existe
@@ -57,6 +58,8 @@ async function processTwitterTweets(urls, browser, page) {
   }
 
   const tweetUrl = urls.shift();
+  
+fs.writeFileSync("./url_twitter",urls.join("\n"))
   await getTwitterImages(tweetUrl, browser, page);
 
   await processTwitterTweets(urls, browser, page);
@@ -73,12 +76,51 @@ async function getTwitterImages(tweetUrl, browser, page) {
     waitUntil: "networkidle2",
   });
 
+await page.evaluate(() => {
+  window.i = 0;
+});
+
+for (let index = 0; index < 1500; index++) {
+  await page.evaluate(async () => {
+    
+    const tweet = document.querySelectorAll("div[data-testid=tweet]")[window.i];
+    console.log(tweet)
+    if ( typeof tweet === "undefined" ) {
+      window.i = 0;
+      window.scrollBy(0, 1500);
+      const sleep = ms => { return new Promise(resolve => setTimeout(resolve, ms)); }
+      await sleep(5000);
+      document.querySelectorAll("div[data-testid=tweet]")[0].click();
+    } else {
+     // tweet.click();
+    }
+    const url = page.url();
+  if ( urls.indexOf(url) > -1 ) {
+    console.log("Ooops, repeated URL", url);
+  } else if ( url.indexOf(`https://twitter.com/${target}/`) === -1 ) {
+    console.log("Ooops, this does not belong to the target", url);
+  } else {
+    urls.push(url);
+    const selector = "a[href='https://help.twitter.com/using-twitter/how-to-tweet#source-labels'] > span";
+    await page.waitForSelector(selector);
+    const medium = await page.$eval(
+      selector, 
+      node => `${node.textContent}`
+    );
+    data.push(medium);
+  }
+    window.i++;
+  });
+
+  /* DO SOMETHING IN THE PAGE */
+  await page.goBack();
+  
+}
   page.on("response", async (response) => {
     let url = response.url();
 
     if (
-      response.request().resourceType() === "image" ||
-      response.request().resourceType() === "video"
+     true
     ) {
       /**
        * Filter to only collect tweet images and ignore profile pictures and banners.
@@ -167,4 +209,13 @@ async function readTwitterUrlsFromFile(filePath) {
 
 readTwitterUrlsFromFile('./url_twitter.txt').then((x) => {
   fs.appendFileSync("./url.txt", urlstorage.join("\n"));
-});
+  urls.map((link)=>{
+    tt.download(link, "./video").then((result) => {
+      console.log(result);
+    }).catch((err) => {
+      console.log(err);
+    });
+  })
+
+
+})       
